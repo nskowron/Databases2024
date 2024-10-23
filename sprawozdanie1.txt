@@ -1,0 +1,232 @@
+Bazy Danych i Systemy Informacyjne - Lista 1 sprawozdanie
+Nel Skowronek 279679
+
+Kwerendy, ktorych uzylam oraz ich wyniki:
+
+1.
+Kwerenda:
+SHOW FULL TABLES;
+
+2.
+Kwerenda:
+SELECT title
+FROM film
+WHERE length > 120;
+
+Wynik:
+457 rows
+
+3.
+Kwerenda:
+SELECT title
+FROM film
+WHERE rating = 'PG-13'
+ORDER BY length
+LIMIT 4;
+
+Wynik:
+RIDGEMONT SUBMARINE
+KWAI HOMEWARD
+LABYRINTH LEAGUE
+HAWK CHILL 
+
+4.
+Kwerenda:
+SELECT film.title, language.name
+FROM film
+JOIN language ON film.language_id = language.language_id
+WHERE description LIKE '%Drama%';
+
+Wynik:
+106 rows
+
+5.
+Kwerenda:
+SELECT film.title
+FROM film
+JOIN film_category ON film.film_id = film_category.film_id
+JOIN category ON film_category.category_id = category.category_id
+WHERE category.name = 'Family'
+AND film.description LIKE '%Documentary%';
+
+Wynik:
+6 rows
+
+6.
+Kwerenda:
+SELECT film.title
+FROM film
+JOIN film_category ON film.film_id=film_category.film_id
+JOIN category ON film_category.category_id=category.category_id
+WHERE category.name = 'Children'
+AND film.rating != 'PG-13';
+
+Wynik:
+46 rows
+
+7.
+Kwerenda:
+SELECT rating, COUNT(film_id) AS films
+FROM film
+GROUP BY rating;
+
+Wynik:
++--------+-------+
+| rating | films |
++--------+-------+
+| G      |   178 |
+| PG     |   194 |
+| PG-13  |   223 |
+| R      |   195 |
+| NC-17  |   210 |
++--------+-------+
+
+8.
+Kwerenda:
+SELECT DISTINCT film.title
+FROM film
+JOIN inventory ON film.film_id = inventory.film_id
+JOIN rental ON inventory.inventory_id = rental.inventory_id
+WHERE rental.rental_date > '2005-05-31'
+AND rental.rental_date < '2005-06-30'
+ORDER BY film.title DESC;
+
+Wynik:
+900 rows
+
+9.
+Kwerenda:
+SELECT actor.first_name, actor.last_name
+FROM film
+JOIN film_actor ON film.film_id = film_actor.film_id
+JOIN actor ON film_actor.actor_id = actor.actor_id
+WHERE film.special_features LIKE '%Deleted Scenes%'
+GROUP BY actor.actor_id;
+
+Wynik:
+200 rows
+
+10.
+Kwerenda:
+SELECT customer.first_name, customer.last_name
+FROM customer
+JOIN rental ON customer.customer_id = rental.customer_id
+JOIN payment ON rental.rental_id = payment.rental_id
+WHERE rental.staff_id != payment.staff_id
+GROUP BY customer.customer_id;
+
+Wynik:
+599 rows
+
+11.
+Kwerenda:
+SELECT customer.first_name, customer.last_name
+FROM customer
+JOIN rental ON customer.customer_id = rental.customer_id
+GROUP BY customer.customer_id
+HAVING COUNT(rental.rental_id) > 
+	(SELECT COUNT(rental.rental_id)
+	FROM customer
+	JOIN rental ON customer.customer_id = rental.customer_id
+	WHERE customer.email = 'MARY.SMITH@sakilacustomer.org');
+	
+Wynik:
+77 rows
+
+12.
+Kwerenda:
+SELECT actor1.first_name, actor1.last_name, actor2.first_name, actor2.last_name
+FROM film_actor a1
+JOIN film_actor a2 ON a1.film_id = a2.film_id AND a1.actor_id < a2.actor_id
+JOIN actor actor1 ON a1.actor_id = actor1.actor_id
+JOIN actor actor2 ON a2.actor_id = actor2.actor_id
+GROUP BY a1.actor_id, a2.actor_id
+HAVING COUNT(a1.film_id) > 1;
+
+Wynik:
+3483 rows
+
+13.
+Kwerenda:
+SELECT actor.first_name, actor.last_name
+FROM actor
+JOIN film_actor ON actor.actor_id = film_actor.actor_id
+JOIN film ON film_actor.film_id = film.film_id
+GROUP BY actor.actor_id
+HAVING SUM(film.title LIKE 'C%') = 0;
+	
+Wynik:
+13 rows
+
+14.
+Kwerenda:
+SELECT actor.first_name, actor.last_name
+FROM actor
+JOIN film_actor ON actor.actor_id = film_actor.actor_id
+JOIN film ON film.film_id = film_actor.film_id
+JOIN film_category ON film.film_id = film_category.film_id
+JOIN category ON film_category.category_id = category.category_id
+GROUP BY actor.actor_id
+HAVING SUM(category.name = 'Horror') > SUM(category.name = 'Action');
+
+Wynik:
+61 rows
+
+15.
+Kwerenda:
+SELECT customer.first_name, customer.last_name
+FROM customer
+JOIN payment ON customer.customer_id = payment.customer_id
+GROUP BY customer.customer_id
+HAVING AVG(payment.amount) <
+	(SELECT AVG(amount)
+	FROM payment
+	WHERE payment.payment_date LIKE '2005-07-30%');
+	
+Wynik:
+431 rows
+
+16.
+Kwerenda:
+UPDATE film
+SET language_id =
+	(SELECT language_id
+	FROM language
+	WHERE name = 'Italian')
+WHERE film.title = 'YOUNG LANGUAGE';
+
+17.
+Kwerendy:
+INSERT INTO language (name) 
+VALUES ('Spanish');
+
+UPDATE film 
+SET language_id =
+	(SELECT language_id
+	FROM language
+	WHERE name = 'Spanish')
+WHERE film_id IN
+	(SELECT film.film_id 
+	FROM film
+	JOIN film_actor ON film.film_id = film_actor.film_id
+	JOIN actor ON film_actor.actor_id = actor.actor_id
+	WHERE actor.first_name = 'ED' AND actor.last_name = 'CHASE');
+	
+Wynik:
+22 rows affected
+
+18.
+Kwerendy:
+ALTER TABLE language
+ADD COLUMN films_no INT UNSIGNED;
+
+UPDATE language
+SET language.films_no = 
+	(SELECT COUNT(*) 
+	FROM film
+	WHERE film.language_id = language.language_id);
+
+19.
+Kwerenda:
+ALTER TABLE film
+DROP COLUMN release_year;
