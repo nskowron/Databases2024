@@ -1,0 +1,128 @@
+Lista 4 - sprawozdanie
+Nel Skowronek 279679
+
+//------------------2.-------------------
+Tworzenie kolekcji z walidacja:
+(pole _id jest tworzone automatycznie)
+
+db.createCollection("authors", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["name", "country", "birth", "death"],
+      properties: {
+        name: {
+          bsonType: "object",
+          required: ["first", "last"],
+          properties: {
+            first: { bsonType: "string" },
+            last: { bsonType: "string" }
+          }
+        },
+        country: { bsonType: "string" },
+        birth: { bsonType: "date" },
+        death: { bsonType: ["date", "null"] }
+      }
+    }
+  },
+  validationAction: "error"
+});
+
+db.createCollection("books", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["title", "isbn", "publication_year", "language", "author", "publisher"],
+      properties: {
+        title: { bsonType: "string" },
+        isbn: { bsonType: "string" },
+        publication_year: { bsonType: "int" },
+        language: { bsonType: "string" },
+        author: { bsonType: "objectId" },
+        publisher: {
+          bsonType: "object",
+          required: ["name", "country"],
+          properties: {
+            name: { bsonType: "string" },
+            country: { bsonType: "string" }
+          }
+        }
+      }
+    }
+  },
+  validationAction: "error"
+});
+
+//------------------------------------------
+Wstawianie danych:
+
+db.authors.insertMany([
+  {
+    name: { first: "J.R.R", last: "Tolkien" },
+    country: "UK",
+    birth: new Date('1892-01-03'),
+    death: new Date('1973-09-02')
+  },
+  {
+    name: { first: "Stanisław", last: "Lem" },
+    country: "Poland",
+    birth: new Date('1921-09-12'),
+    death: new Date('2006-03-27')
+  },
+  {
+    name: { first: "Olga", last: "Tokarczuk" },
+    country: "Poland",
+    birth: new Date('1962-01-29'),
+    death: null
+  },
+  {
+    name: { first: "George", last: "Orwell" },
+    country: "UK",
+    birth: new Date('1903-06-25'),
+    death: new Date('1950-01-21')
+  }
+]);
+
+db.books.insertMany([
+  {
+    title: "The Hobbit",
+    isbn: "978-0-261-10295-6",
+    publication_year: 1937,
+    language: "English",
+    author: db.authors.findOne({ "name.last": "Tolkien" })._id,
+    publisher: { name: "George Allen & Unwin", country: "UK" }
+  },
+  {
+    title: "Solaris",
+    isbn: "978-0-7432-7350-9",
+    publication_year: 1961,
+    language: "Polish",
+    author: db.authors.findOne({ "name.last": "Lem" })._id,
+    publisher: { name: "MON", country: "Poland" }
+  },
+  {
+    title: "The Futurological Congress",
+    isbn: "978-0-15-181329-6",
+    publication_year: 1971,
+    language: "Polish",
+    author: db.authors.findOne({ "name.last": "Lem" })._id,
+    publisher: { name: "Wydawnictwo Literackie", country: "Poland" }
+  },
+  {
+    title: "The Cyberiad",
+    isbn: "978-0-15-181362-3",
+    publication_year: 1965,
+    language: "Polish",
+    author: db.authors.findOne({ "name.last": "Lem" })._id,
+    publisher: { name: "Wydawnictwo Literackie", country: "Poland" }
+  },
+  {
+    title: "Flights",
+    isbn: "978-1-5247-3144-5",
+    publication_year: 2007,
+    language: "Polish",
+    author: db.authors.findOne({ "name.last": "Tokarczuk" })._id,
+    publisher: { name: "Wydawnictwo Literackie", country: "Poland" }
+  }
+]);
+
