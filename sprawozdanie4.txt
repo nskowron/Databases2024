@@ -53,8 +53,15 @@ db.createCollection("books", {
   validationAction: "error"
 });
 
+Z tak okreslona walidacja mozna wpisac date smierci jako null,
+ale zadne inne pole juz nie. 
+Mozna dodac obiekt z dodatkowymi danymi, lecz nie z brakujacymi.
+Przyklady:
+
 //------------------------------------------
 Wstawianie danych:
+
+- Poprawne dane:
 
 db.authors.insertMany([
   {
@@ -82,6 +89,14 @@ db.authors.insertMany([
     death: new Date('1950-01-21')
   }
 ]);
+
+db.authors.insertOne({
+  name: { first: "William", last: "Shakespeare" },
+  country: "UK",
+  birth: new Date("1564-04-23"),
+  death: new Date("1616-04-23"),
+  favourite_color: "Blue"
+});
 
 db.books.insertMany([
   {
@@ -123,6 +138,99 @@ db.books.insertMany([
     language: "Polish",
     author: db.authors.findOne({ "name.last": "Tokarczuk" })._id,
     publisher: { name: "Wydawnictwo Literackie", country: "Poland" }
+  }
+]);
+
+- Niepoprawne dane:
+
+db.authors.insertOne({
+    name: { first: "Michael", last: "Jackson" }
+    });
+
+db.books.insertOne({
+  title: "Hamlet",
+  isbn: "978-0-14-139650-7",
+  publication_year: 1603,
+  language: "English",
+  author: null,
+  publisher: {
+    name: "Penguin Classics",
+    country: "UK"
+  }
+});
+
+//---------------------------------------------
+Tworzenie kolekcji Recenzje:
+
+db.createCollection("reviews", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["book", "reviewer", "rating", "review_text"],
+      properties: {
+        book_id: { bsonType: "objectId" },
+        reviewer: { bsonType: "objectId" },
+        rating: {
+          bsonType: "int",
+          minimum: 1,
+          maximum: 5
+        },
+        review_text: { bsonType: "string" }
+      }
+    }
+  },
+  validationAction: "error"
+});
+
+Tworzenie przykladowego reviewera, zeby mozna bylo uzyc id:
+
+db.createCollection("reviewers");
+
+db.reviewers.insertMany([
+    { name: "Arnie The Reviewer" },
+    { name: "Bernie The Reviewer" },
+    { name: "Charlie The Reviewer" }
+]);
+
+//--------------------------------------------------
+Dodawanie recenzji:
+
+db.reviews.insertMany([
+  {
+    book: db.books.findOne({ "title": "The Hobbit" })._id,
+    reviewer: db.reviewers.findOne({ "name": "Arnie The Reviewer" })._id,
+    rating: 5,
+    review_text: "An absolutely fantastic read! Highly recommended."
+  },
+  {
+    book: db.books.findOne({ "title": "The Hobbit" })._id,
+    reviewer: db.reviewers.findOne({ "name": "Bernie The Reviewer" })._id,
+    rating: 4,
+    review_text: "Very engaging story, but could have been a bit shorter."
+  },
+  {
+    book: db.books.findOne({ "title": "The Hobbit" })._id,
+    reviewer: db.reviewers.findOne({ "name": "Charlie The Reviewer" })._id,
+    rating: 2,
+    review_text: "Not my cup of tea, but I can see why others might like it."
+  },
+  {
+    book: db.books.findOne({ "title": "Flights" })._id,
+    reviewer: db.reviewers.findOne({ "name": "Bernie The Reviewer" })._id,
+    rating: 3,
+    review_text: "An average book with some good moments."
+  },
+  {
+    book: db.books.findOne({ "title": "Solaris" })._id,
+    reviewer: db.reviewers.findOne({ "name": "Bernie The Reviewer" })._id,
+    rating: 5,
+    review_text: "A masterpiece! Will read it again for sure."
+  },
+  {
+    book: db.books.findOne({ "title": "Flights" })._id,
+    reviewer: db.reviewers.findOne({ "name": "Charlie The Reviewer" })._id,
+    rating: 1,
+    review_text: "I didn't enjoy this book at all. Found it very boring."
   }
 ]);
 
