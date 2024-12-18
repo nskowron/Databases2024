@@ -234,3 +234,233 @@ db.reviews.insertMany([
   }
 ]);
 
+Przyjeta metoda anonimizuje reviewera - nie trzeba znac
+jego konkretnych danych aby wystawic / przeczytac Recenzje
+
+
+//-------------------------------------------
+Dodawanie pole
+
+Trzeba nadpisac walidator authors i books
+
+db.runCommand({
+  collMod: "authors",
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["name", "country", "birth", "death", "awards"],
+      properties: {
+        name: {
+          bsonType: "object",
+          required: ["first", "last"],
+          properties: {
+            first: { bsonType: "string" },
+            last: { bsonType: "string" }
+          }
+        },
+        country: { bsonType: "string" },
+        birth: { bsonType: "date" },
+        death: { bsonType: ["date", "null"] },
+        awards: {
+          bsonType: "array",
+          items: {
+            bsonType: "object",
+            required: ["name", "year"],
+            properties: {
+              name: { bsonType: "string" },
+              year: { bsonType: "int" }
+            }
+          }
+        }
+      }
+    }
+  },
+  validationAction: "error"
+});
+
+db.runCommand({
+  collMod: "books",
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["title", "isbn", "publication_year", "language", "author", "publisher", "genres"],
+      properties: {
+        title: { bsonType: "string" },
+        isbn: { bsonType: "string" },
+        publication_year: { bsonType: "int" },
+        language: { bsonType: "string" },
+        author: { bsonType: "objectId" },
+        publisher: {
+          bsonType: "object",
+          required: ["name", "country"],
+          properties: {
+            name: { bsonType: "string" },
+            country: { bsonType: "string" }
+          }
+        },
+        genres: {
+          bsonType: "array",
+          items: { bsonType: "string" }
+        }
+      }
+    }
+  },
+  validationAction: "error"
+});
+
+//------------------------------
+Update danych
+
+db.authors.updateOne(
+  { "name.first": "Olga", "name.last": "Tokarczuk" },
+  {
+    $set: { awards: [
+      { name: "Nobel Prize in Literature", year: 2018 },
+      { name: "Nike Award", year: 2008 },
+      { name: "Nike Award", year: 2015 }
+    ]}
+  }
+);
+
+db.authors.updateOne(
+  { "name.first": "Stanisław", "name.last": "Lem" },
+  {
+    $set: { awards: [
+      { name: "Austrian State Prize for European Literature", year: 1985 },
+      { name: "Janusz A. Zajdel Award", year: 1987 },
+      { name: "Franz Kafka Prize", year: 1991 }
+    ]}
+  }
+);
+
+db.authors.updateOne(
+  { "name.first": "George", "name.last": "Orwell" },
+  {
+    $set: { awards: [
+      { name: "Prometheus Hall of Fame Award", year: 1984 },
+      { name: "Retro-Hugo Award for Best Novella", year: 1946 },
+      { name: "James Tait Black Memorial Prize", year: 1937 }
+    ]}
+  }
+);
+
+db.authors.updateMany(
+  { awards: { $exists: false } },
+  { $set: { awards: [] } }
+);
+
+
+db.books.updateOne(
+  { title: "The Hobbit" }, // Dopasowanie po tytule
+  { $set: { genres: ["Fantasy", "Adventure"] } }
+);
+
+db.books.updateOne(
+  { title: "Solaris" },
+  { $set: { genres: ["Science Fiction", "Philosophical Fiction"] } }
+);
+
+db.books.updateOne(
+  { title: "The Futurological Congress" },
+  { $set: { genres: ["Science Fiction", "Satire", "Dystopia"] } }
+);
+
+db.books.updateOne(
+  { title: "The Cyberiad" },
+  { $set: { genres: ["Science Fiction", "Humor", "Short Stories"] } }
+);
+
+db.books.updateOne(
+  { title: "Flights" },
+  { $set: { genres: ["Literary Fiction", "Philosophical Fiction", "Travel Literature"] } }
+);
+
+db.books.updateMany(
+  { genres: { $exists: false } },
+  { $set: { genres: [] } }
+);
+
+
+//--------------3---------------
+
+1.
+db.books.find({ 
+  author: db.authors.findOne({ 
+    "name.first": "Olga", 
+    "name.last": "Tokarczuk"
+  })._id
+});
+
+2.
+db.books.find({
+  language: "Polish",
+  genres: "Fantasy"
+});
+
+3.
+db.books.aggregate([
+  {
+    $lookup: {
+      from: "reviews",
+      localField: "_id",
+      foreignField: "book",
+      as: "book_reviews"
+    }
+  },
+  {
+    $addFields: {
+      avgRating: { $avg: "$book_reviews.rating" }
+    }
+  },
+  {
+    $match: {
+      avgRating: { $gte: 4 }
+    }
+  },
+  {
+    $project: {
+      title: 1,
+      avgRating: 1
+    }
+  }
+]);
+
+4.
+db.books.aggregate([
+  {
+    $lookup: {
+      from: "authors",
+      localField: "author",
+      foreignField: "_id",
+      as: "book_author"
+    }
+  },
+  {
+    $unwind: "$book_author"
+  },
+  {
+    $match: {
+      "book_author.country": "Poland"
+    }
+  },
+  {
+    $lookup: {
+      from: "reviews",
+      localField: "_id",
+      foreignField: "book",
+      as: "book_reviews"
+    }
+  },
+  {
+    $addFields: {
+      avgRating: { $avg: "$book_reviews.rating" }
+    }
+  },
+  {
+    $project: {
+      title: 1,
+      authorName: { $concat: ["$book_author.name.first", " ", "$book_author.name.last"] },
+      avgRating: 1
+    }
+  }
+]);

@@ -1,0 +1,1 @@
+mongosh "mongodb+srv://clusternel.e6exs.mongodb.net/" --apiVersion 1 --username nel --password mongo
